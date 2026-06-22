@@ -66,27 +66,33 @@ def next_avatar_color():
 # =============================================================================
 # Global nickname registry (case-insensitive) + ban list
 # =============================================================================
-# Blacklist file persistence
+# Ban persistence: dict format {client_id: {timestamp, reason}}
+# Backward-compatible with old list-of-strings format
 def _load_bans():
     if BAN_FILE.exists():
         try:
             with open(BAN_FILE, "r", encoding="utf-8") as f:
-                return set(json.load(f))
+                data = json.load(f)
+            if isinstance(data, list):
+                # Old format: list of client_id strings
+                return {cid: {"timestamp": 0, "reason": "管理员封禁"} for cid in data}
+            elif isinstance(data, dict):
+                return data
         except Exception:
-            return set()
-    return set()
+            return {}
+    return {}
 
 
 def _save_bans():
     try:
         with open(BAN_FILE, "w", encoding="utf-8") as f:
-            json.dump(list(_banned_client_ids), f, ensure_ascii=False, indent=2)
+            json.dump(_banned_clients, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
 
 
 _used_nicknames: set[str] = set()
-_banned_client_ids: set[str] = _load_bans()  # stores client_id (persistent via file)
+_banned_clients: dict[str, dict] = _load_bans()  # client_id -> {timestamp, reason}
 
 
 def is_nickname_available(name: str) -> bool:
@@ -102,12 +108,24 @@ def unregister_nickname(name: str):
 
 
 def is_client_banned(client_id: str) -> bool:
-    return client_id in _banned_client_ids
+    return client_id in _banned_clients
 
 
-def ban_client(client_id: str):
-    _banned_client_ids.add(client_id)
+def ban_client(client_id: str, reason: str = "管理员封禁"):
+    _banned_clients[client_id] = {"timestamp": int(time.time()), "reason": reason}
     _save_bans()
+
+
+def unban_client(client_id: str) -> bool:
+    if client_id in _banned_clients:
+        del _banned_clients[client_id]
+        _save_bans()
+        return True
+    return False
+
+
+def get_banned_clients():
+    return [{"client_id": cid, **info} for cid, info in _banned_clients.items()]
 
 
 def generate_visitor_name(sid: str) -> str:
@@ -479,6 +497,67 @@ async def websocket_handler(request):
                     else:
                         await ws.send_json({"type": "error", "message": "你不是管理员"})
 
+                elif msg_type == "admin_unban":
+                    if is_admin or session_id in _admin_sessions:
+                        target_client = data.get("target_client_id", "")
+                        if target_client and unban_client(target_client):
+                            await ws.send_json({"type": "unban_ok", "client_id": target_client})
+                        else:
+                            await ws.send_json({"type": "error", "message": "未找到该封禁记录"})
+                    else:
+                        await ws.send_json({"type": "error", "message": "你不是管理员"})
+
+                elif msg_type == "admin_ban_list":
+                    if is_admin or session_id in _admin_sessions:
+                        await ws.send_json({
+                            "type": "admin_ban_list",
+                            "bans": get_banned_clients(),
+                        })
+                    else:
+                        await ws.send_json({"type": "error", "message": "你不是管理员"})
+
+                elif msg_type == "admin_load_messages":
+                    if is_admin or session_id in _admin_sessions:
+                        all_msgs = []
+                        for room_id, room in room_manager.rooms.items():
+                            for msg in room.messages:
+                                m = dict(msg)
+                                m["_room"] = room_id
+                                m["_room_name"] = room.name
+                                all_msgs.append(m)
+                        all_msgs.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+                        await ws.send_json({
+                            "type": "admin_message_history",
+                            "messages": all_msgs,
+                        })
+                    else:
+                        await ws.send_json({"type": "error", "message": "你不是管理员"})
+
+                elif msg_type == "admin_search_messages":
+                    if is_admin or session_id in _admin_sessions:
+                        keyword = data.get("keyword", "").strip().lower()
+                        if not keyword or len(keyword) < 1:
+                            await ws.send_json({"type": "admin_search_result", "messages": [], "keyword": keyword})
+                        else:
+                            results = []
+                            for room_id, room in room_manager.rooms.items():
+                                for msg in room.messages:
+                                    content = msg.get("content", "").lower()
+                                    username = msg.get("username", "").lower()
+                                    if keyword in content or keyword in username:
+                                        m = dict(msg)
+                                        m["_room"] = room_id
+                                        m["_room_name"] = room.name
+                                        results.append(m)
+                            results.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+                            await ws.send_json({
+                                "type": "admin_search_result",
+                                "messages": results,
+                                "keyword": keyword,
+                            })
+                    else:
+                        await ws.send_json({"type": "error", "message": "你不是管理员"})
+
                 elif msg_type == "ping":
                     await ws.send_json({"type": "pong"})
 
@@ -561,10 +640,21 @@ async def admin_handler(request):
     return web.FileResponse(STATIC_DIR / "admin.html")
 
 
+async def health_handler(request):
+    """健康检查端点 - Cloudflare / 监控用"""
+    return web.json_response({
+        "status": "ok",
+        "online": room_manager.get_online_count(),
+        "rooms": len(room_manager.rooms),
+        "timestamp": int(time.time()),
+    })
+
+
 def main():
-    app = web.Application()
+    app = web.Application(client_max_size=65536)
     app.router.add_get("/", index_handler)
     app.router.add_get("/admin", admin_handler)
+    app.router.add_get("/health", health_handler)
     app.router.add_get("/ws", websocket_handler)
 
     static_path = STATIC_DIR
@@ -582,7 +672,11 @@ def main():
 ╚══════════════════════════════════════════╝
     """)
 
-    web.run_app(app, host=HOST, port=PORT)
+    web.run_app(app, host=HOST, port=PORT,
+                handle_signals=True,
+                shutdown_timeout=10,
+                keepalive_timeout=75,
+                tcp_keepalive=True)
 
 
 if __name__ == "__main__":
