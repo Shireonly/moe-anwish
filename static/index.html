@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>awishr 聊天室</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+[data-theme="dark"]{--bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--surface3:#2a2a3a;--border:#333348;--text:#e4e4e7;--text2:#a1a1aa;--accent:#60a5fa;--accent-hover:#93bbfd;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--input-bg:#22222f}
+[data-theme="light"]{--bg:#f0f0f3;--surface:#fff;--surface2:#eaeaf0;--surface3:#dddde6;--border:#d8d8e0;--text:#1a1a2e;--text2:#666680;--accent:#3b82f6;--accent-hover:#2563eb;--green:#16a34a;--red:#dc2626;--yellow:#ca8a04;--input-bg:#fff}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.header h1{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent),#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.5px}
+.header .online-badge{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px;margin-left:auto;display:flex;align-items:center;gap:5px}
+.header .online-dot{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0}
+.header .online-num{color:var(--green);font-weight:600}
+.header .settings-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:8px;font-size:17px;cursor:pointer;line-height:1;transition:all .15s}
+.header .settings-btn:hover{background:var(--surface3);transform:scale(1.05)}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:170px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.room-list{flex:1;overflow-y:auto;padding:10px 8px}
+.room-item{padding:11px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:500;color:var(--text);transition:all .15s;border-radius:10px;margin-bottom:6px;background:var(--surface2)}
+.room-item:hover{background:var(--surface3);transform:translateX(2px)}
+.room-item.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.25)}
+.room-item .badge{font-size:11px;background:rgba(255,255,255,.2);padding:2px 9px;border-radius:12px;min-width:22px;text-align:center}
+.room-item.active .badge{background:rgba(255,255,255,.35)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.room-header{padding:8px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--surface)}
+.room-header .room-name{font-size:14px;font-weight:600}
+.room-header .room-online{font-size:12px;color:var(--text2)}
+.welcome-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:var(--text2);padding:40px;text-align:center}
+.welcome-screen .room-buttons{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;background:var(--surface);padding:30px 40px;border-radius:16px;border:1px solid var(--border)}
+.welcome-screen .room-buttons button{padding:18px 40px;border-radius:14px;border:2px solid var(--accent);background:var(--surface);color:var(--text);font-size:17px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.welcome-screen .room-buttons button:hover{background:var(--accent);color:#fff;transform:translateY(-3px);box-shadow:0 4px 14px rgba(124,58,237,.3)}
+.messages{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 18px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+.message-row{display:flex;align-items:flex-start;gap:8px;max-width:85%;animation:msgIn .18s ease}
+@keyframes msgIn{from{opacity:0}to{opacity:1}}
+.avatar{width:36px;height:36px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border:1.5px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.avatar svg{width:26px;height:26px}
+.message-body{flex:1;min-width:0}
+.msg-meta{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}
+.msg-user{font-size:13px;font-weight:700;color:var(--text)}
+.msg-time{font-size:10px;color:var(--text2);opacity:.6}
+.msg-bubble{display:inline;padding:2px 6px;border-radius:6px;font-size:14px;line-height:1.6;word-break:break-word;color:#333}
+.message.system{align-self:center;max-width:100%;font-size:12px;color:var(--text2);background:transparent;opacity:.65;padding:3px 10px;border-radius:10px}
+.input-area{padding:10px 16px 12px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:8px;flex-shrink:0;align-items:flex-end}
+.input-area .username-display{font-size:12px;color:var(--accent);font-weight:600;white-space:nowrap;padding:8px 6px;border-radius:8px;cursor:pointer;flex-shrink:0;transition:background .15s}
+.input-area .username-display:hover{background:var(--surface2)}
+.input-area input[type="text"]{flex:1;background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:12px;font-size:14px;outline:none;transition:border-color .15s;min-width:0}
+.input-area input[type="text"]:focus{border-color:var(--accent)}
+.input-area input[type="text"]::placeholder{color:var(--text2);opacity:.45}
+.input-area button{background:var(--accent);color:#fff;border:none;padding:9px 20px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;flex-shrink:0}
+.input-area button:hover{background:var(--accent-hover);transform:translateY(-1px)}
+.input-area button:disabled{opacity:.35;cursor:not-allowed}
+.connect-screen{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px;color:var(--text2)}
+.connect-screen .spinner{width:38px;height:38px;border:3px solid var(--surface2);border-top:3px solid var(--accent);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:400px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.15)}
+.modal h3{margin-bottom:20px;font-size:18px;text-align:center;background:linear-gradient(135deg,var(--accent),#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.setting-group{margin-bottom:18px}
+.setting-label{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px}
+.theme-toggle{display:flex;gap:10px}
+.theme-toggle button{flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;transition:all .15s}
+.theme-toggle button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.username-row{display:flex;gap:8px}
+.username-row input{flex:1;background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:10px;font-size:14px;outline:none}
+.username-row input:focus{border-color:var(--accent)}
+.username-row button{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.bubble-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:160px;overflow-y:auto}
+.bubble-swatch{aspect-ratio:1;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.bubble-swatch.selected{border-color:var(--accent);transform:scale(1.12)}
+.bubble-swatch:hover{transform:scale(1.08)}
+.modal-close{width:100%;padding:10px;border:none;border-radius:10px;background:var(--surface2);color:var(--text);font-size:14px;cursor:pointer;font-weight:600;margin-top:6px;transition:background .15s}
+.modal-close:hover{background:var(--surface3)}
+.sidebar-toggle{display:none;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:8px;font-size:18px;cursor:pointer;line-height:1}
+@media(max-width:640px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .2s ease}.sidebar.mobile-show{transform:translateX(0)}.sidebar-toggle{display:block}}
+</style>
+</head>
+<body>
+<div class="header">
+  <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+  <h1>awishr</h1>
+  <div class="online-badge"><span class="online-dot"></span><span class="online-num" id="onlineTotal">0</span></div>
+  <button class="settings-btn" id="settingsBtn">⚙</button>
+</div>
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <div class="room-list" id="roomList"></div>
+  </div>
+  <div class="main">
+    <div class="room-header">
+      <span class="room-name" id="currentRoomName">awishr</span>
+      <span class="room-online" id="currentRoomOnline"></span>
+    </div>
+    <div class="messages" id="messages">
+      <div class="connect-screen" id="connectScreen">
+        <div class="spinner"></div>
+        <div>正在连接...</div>
+      </div>
+    </div>
+    <div class="input-area">
+      <span class="username-display" id="usernameDisplay">游客</span>
+      <input type="text" id="msgInput" placeholder="输入消息..." disabled>
+      <button id="sendBtn" disabled>发送</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h3>设置</h3>
+    <div class="setting-group">
+      <div class="setting-label">背景主题</div>
+      <div class="theme-toggle">
+        <button class="active" id="themeDarkBtn">深色</button>
+        <button id="themeLightBtn">浅色</button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-label">我的昵称</div>
+      <div class="username-row">
+        <input type="text" id="settingsNameInput" placeholder="输入新昵称" maxlength="20">
+        <button id="settingsNameBtn">保存</button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-label">头像风格</div>
+      <div class="bubble-grid" id="avatarStyleGrid"></div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-label">聊天气泡颜色</div>
+      <div class="bubble-grid" id="bubbleGrid"></div>
+    </div>
+    <button class="modal-close" id="settingsCloseBtn">关闭</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const AD=[function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/><rect x="13" y="11" width="14" height="5" rx="2" fill="none" stroke="#333" stroke-width="1.2"/><line x1="19" y1="13.5" x2="21" y2="13.5" stroke="#333" stroke-width="1.2"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/><rect x="11" y="7" width="18" height="10" rx="3" fill="none" stroke="#333" stroke-width="2"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><polygon points="10,12 14,2 18,10" fill="white" opacity="0.9"/><polygon points="22,10 26,2 30,12" fill="white" opacity="0.9"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><ellipse cx="20" cy="8" rx="12" ry="4" fill="white"/><rect x="12" y="2" width="16" height="7" rx="3" fill="white"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><rect x="18" y="2" width="4" height="4" rx="1" fill="white"/><circle cx="20" cy="2" r="2" fill="white"/><rect x="10" y="7" width="20" height="16" rx="3" fill="white"/><rect x="14" y="11" width="4" height="3" rx="1" fill="#333"/><rect x="22" y="11" width="4" height="3" rx="1" fill="#333"/><rect x="14" y="17" width="12" height="2" rx="1" fill="#333"/><rect x="10" y="24" width="20" height="12" rx="3" fill="white"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><ellipse cx="20" cy="10" rx="10" ry="8" fill="white"/><circle cx="20" cy="11" r="4" fill="#333"/><circle cx="20" cy="11" r="2" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><circle cx="24" cy="6" r="4" fill="white"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><circle cx="20" cy="13" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/><rect x="13" y="14" width="14" height="8" rx="3" fill="#ddd" stroke="#aaa" stroke-width="0.8"/><circle cx="17" cy="11" r="1" fill="#333"/><circle cx="23" cy="11" r="1" fill="#333"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><ellipse cx="12" cy="6" rx="8" ry="5" fill="white" opacity="0.95"/><circle cx="20" cy="15" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/><circle cx="22" cy="14" r="1.2" fill="#333"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/><ellipse cx="17" cy="13" rx="4" ry="3.5" fill="#333"/><line x1="21" y1="13" x2="30" y2="9" stroke="#333" stroke-width="1.5"/>';return r},function(c){var r='<rect width="40" height="40" rx="6" fill="'+c+'"/><circle cx="20" cy="14" r="7" fill="white"/><path d="M8 36c0-8 5.4-14 12-14s12 6 12 14H8z" fill="white"/><circle cx="16" cy="13" r="1.2" fill="#333"/><circle cx="24" cy="13" r="1.2" fill="#333"/><path d="M16 17 Q20 20 24 17" fill="none" stroke="#333" stroke-width="1.2" stroke-linecap="round"/>';return r}];
+const BC=["#FFF0F0","#FFE8E8","#FFE0E0","#FFD8D8","#FFD0D0","#FFF5E6","#FFECD2","#FFE3C4","#FFDAB9","#FFD1A8","#FFF9E6","#FFF3CC","#FFECB3","#FFE599","#FFDF80","#F0FFF0","#E6FFE6","#DCFFDC","#D2FFD2","#C8FFC8","#E6FFF9","#CCFFF3","#B3FFE7","#99FFDB","#80FFCF","#F0F8FF","#E6F2FF","#DCEAFF","#D2E2FF","#C8DAFF","#F5F0FF","#EBE0FF","#E0D0FF","#D6C0FF","#CCB0FF","#FFF0F5","#FFE0EB","#FFD0E1","#FFC0D7","#FFB0CD","#F0FFFF","#E0FFFF","#D0FFFF","#C0FFFF","#B0FFFF","#F5FFF0","#EBFFE6","#E0FFD0","#D6FFC0","#CCFFB0","#FFF5F0","#FFEBE6","#FFE0D0","#FFD6C0","#FFCCB0","#F0F5FF","#E6EBFF","#DCE0FF","#D2D6FF","#C8CCFF"];
+
+(function(){
+var cid=localStorage.getItem('aw_cid');if(!cid){cid='c_'+Math.random().toString(36).substr(2,10);localStorage.setItem('aw_cid',cid)}
+var uid=cid,uname='游客',curRoom=null,rooms=[],connected=false,ws,ping;
+var theme=localStorage.getItem('aw_theme')||'dark';
+var ac=localStorage.getItem('aw_ac')||'',bc=localStorage.getItem('aw_bc')||'#FFF0F0';
+var as_=parseInt(localStorage.getItem('aw_as')||'0');
+
+var $=function(id){return document.getElementById(id)};
+var msgEl=$('messages'),rlEl=$('roomList'),mi=$('msgInput'),sb=$('sendBtn');
+var ud=$('usernameDisplay'),crn=$('currentRoomName'),cro=$('currentRoomOnline');
+var ot=$('onlineTotal'),cs=$('connectScreen'),sbt=$('sidebarToggle'),sbEl=$('sidebar');
+var setBtn=$('settingsBtn'),setModal=$('settingsModal'),setNameI=$('settingsNameInput'),setNameB=$('settingsNameBtn'),setClose=$('settingsCloseBtn');
+var td=$('themeDarkBtn'),tl=$('themeLightBtn'),toastEl=$('toast'),bgEl=$('bubbleGrid'),asgEl=$('avatarStyleGrid');
+
+function applyTheme(t){theme=t;document.documentElement.setAttribute('data-theme',t);localStorage.setItem('aw_theme',t);td.classList.toggle('active',t==='dark');tl.classList.toggle('active',t==='light')}
+applyTheme(theme);
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(function(){toastEl.classList.remove('show')},2500)}
+
+function connect(){
+var host=location.host;
+var wsUrl='ws://'+host+'/ws';
+var hostname=location.hostname;
+if(hostname==='moe-anwish.pages.dev'||hostname.endsWith('.trycloudflare.com')){
+wsUrl='wss://'+host+'/ws'
+}
+ws=new WebSocket(wsUrl);
+ws.onopen=function(){connected=true;mi.disabled=false;sb.disabled=false;mi.focus();ws.send(JSON.stringify({type:'identify',client_id:cid}))};
+ws.onmessage=function(e){handle(JSON.parse(e.data))};
+ws.onclose=function(){connected=false;mi.disabled=true;sb.disabled=true;if(ping)clearInterval(ping);setTimeout(connect,3000)};
+ws.onerror=function(){ws.close()};
+ping=setInterval(function(){if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},30000)
+}
+
+function handle(d){
+try{
+switch(d.type){
+case 'welcome':
+uid=d.session_id;if(!ac||ac===''){ac=d.avatar_color||'#87CEEB';localStorage.setItem('aw_ac',ac)}
+var sa=localStorage.getItem('aw_as');if(sa!==null&&parseInt(sa)!==0)ws.send(JSON.stringify({type:'set_avatar_style',style:parseInt(sa)}));
+var sn=localStorage.getItem('aw_nn');if(sn&&sn!==uname)ws.send(JSON.stringify({type:'set_username',username:sn}));
+var sb2=localStorage.getItem('aw_bc');if(sb2&&sb2!=='#FFF0F0')ws.send(JSON.stringify({type:'set_bubble_color',color:sb2}));
+rooms=d.rooms||[];updateRooms();ot.textContent=d.online_total||0;cs.style.display='none';showWelcome();
+break;
+case 'room_history':
+curRoom=d.room_id;msgEl.innerHTML='';
+if(d.messages){d.messages.slice().reverse().forEach(function(m){msgEl.appendChild(createMsgEl(m))})}
+var r=rooms.find(function(x){return x.id===d.room_id});if(r){crn.textContent=r.name;cro.textContent=(d.online||0)+' 人在线'}
+updateRooms();
+break;
+case 'chat':render(d);break;
+case 'system':render(d);break;
+case 'room_list':
+rooms=d.rooms||[];updateRooms();ot.textContent=d.online_total||0;
+if(curRoom){var cr=rooms.find(function(x){return x.id===curRoom});if(cr)cro.textContent=cr.online+' 人在线'}
+break;
+case 'username_set':uname=d.username;ud.textContent=uname;localStorage.setItem('aw_nn',uname);break;
+case 'avatar_style_set':as_=d.style;localStorage.setItem('aw_as',d.style);updateAS();break;
+case 'bubble_set':bc=d.color;localStorage.setItem('aw_bc',d.color);updateBubble();break;
+case 'kicked':toast(d.message);curRoom=null;cs.style.display='none';showWelcome();break;
+case 'banned':toast('你已被封禁');msgEl.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red);font-size:16px">你已被封禁</div>';break;
+case 'delete_message':
+var rmTs=d.timestamp;
+if(rmTs){msgEl.querySelectorAll('.message-row').forEach(function(el){if(el.dataset.ts==rmTs)el.remove()})}
+break;
+case 'error':toast(d.message);break;
+}
+}catch(e){console.error(e)}
+}
+
+function showWelcome(){
+curRoom=null;
+msgEl.innerHTML='<div class="welcome-screen"><div class="room-buttons" id="welcomeRoomBtns"></div></div>';
+crn.textContent='awishr';cro.textContent='';
+var btns=$('welcomeRoomBtns');
+rooms.forEach(function(r){var b=document.createElement('button');b.textContent=r.name+' ('+r.online+')';b.onclick=function(){join(r.id)};btns.appendChild(b)})
+}
+
+function avatarSvg(s,c){var fn=AD[s%AD.length];return '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">'+fn(c||'#87CEEB')+'</svg>'}
+
+function createMsgEl(m){
+if(m.type==='system'){var d=document.createElement('div');d.className='message system';d.textContent=m.message;return d}
+var row=document.createElement('div');row.className='message-row';row.dataset.ts=m.timestamp||'';
+var t=m.timestamp?new Date(m.timestamp*1000).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'';
+var mc=m.avatar_color||'#87CEEB',ms=m.avatar_style||0,mb=m.bubble_color||'#FFF0F0';
+row.innerHTML='<div class="avatar">'+avatarSvg(ms,mc)+'</div><div class="message-body"><div class="msg-meta"><span class="msg-user">'+esc(m.username||'匿名')+'</span><span class="msg-time">'+t+'</span></div><div class="msg-bubble" style="background:'+mb+'">'+esc(m.content||'')+'</div></div>';
+return row
+}
+function render(m){
+var el=createMsgEl(m);msgEl.insertBefore(el,msgEl.firstChild)
+}
+
+function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+function updateRooms(){
+rlEl.innerHTML='';
+rooms.forEach(function(r){var d=document.createElement('div');d.className='room-item'+(r.id===curRoom?' active':'');d.innerHTML='<span>'+r.name+'</span><span class="badge">'+r.online+'</span>';d.onclick=function(){join(r.id)};rlEl.appendChild(d)})
+}
+
+function join(id){if(!connected)return;ws.send(JSON.stringify({type:'join_room',room_id:id}));sbEl.classList.remove('mobile-show')}
+
+function sendMsg(){
+var c=mi.value.trim();if(!c||!connected)return;if(!curRoom){toast('请先选择一个房间');return}
+ws.send(JSON.stringify({type:'chat',content:c}));mi.value='';mi.focus()
+}
+mi.addEventListener('keydown',function(e){if(e.key==='Enter')sendMsg()});
+sb.addEventListener('click',sendMsg);
+
+function openSet(){
+setNameI.value=uname;
+updateAS();
+updateBubble();
+setModal.classList.add('show')
+}
+ud.addEventListener('click',openSet);
+setBtn.addEventListener('click',openSet);
+setClose.addEventListener('click',function(){setModal.classList.remove('show')});
+setModal.addEventListener('click',function(e){if(e.target===setModal)setModal.classList.remove('show')});
+
+setNameB.addEventListener('click',function(){var n=setNameI.value.trim();if(!n)return;if(n.length>20){toast('昵称不能超过20个字符');return}ws.send(JSON.stringify({type:'set_username',username:n}))});
+setNameI.addEventListener('keydown',function(e){if(e.key==='Enter')setNameB.click()});
+
+function buildBubbleGrid(arr){
+bgEl.innerHTML='';
+(arr||BC).forEach(function(c){
+var s=document.createElement('div');s.className='bubble-swatch'+(c===bc?' selected':'');s.style.background=c;
+s.onclick=function(){bc=c;if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'set_bubble_color',color:c}));updateBubble()};
+bgEl.appendChild(s)
+})
+}
+function updateBubble(){buildBubbleGrid(BC)}
+function updateAS(){
+if(!asgEl)return;
+asgEl.innerHTML='';
+for(var i=0;i<AD.length;i++){
+var s=document.createElement('div');
+s.style.cssText='display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:8px;cursor:pointer;overflow:hidden';
+s.style.border='2px solid '+(i===as_?'var(--accent)':'transparent');
+s.style.background='var(--surface2)';
+s.innerHTML=avatarSvg(i,'#888');
+s.onclick=function(n){return function(){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'set_avatar_style',style:n}))}}(i);
+asgEl.appendChild(s)
+}
+}
+
+td.addEventListener('click',function(){applyTheme('dark')});
+tl.addEventListener('click',function(){applyTheme('light')});
+sbt.addEventListener('click',function(){sbEl.classList.toggle('mobile-show')});
+
+connect();
+})();
+</script>
+<style>
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 28px;border-radius:12px;font-size:14px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.15)}.toast.show{opacity:1}
+</style>
+</body>
+</html>

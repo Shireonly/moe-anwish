@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>awishr 管理后台</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--surface3:#2a2a3a;--border:#333348;--text:#e4e4e7;--text2:#a1a1aa;--accent:#60a5fa;--red:#ef4444;--green:#22c55e;--yellow:#eab308}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.header h1{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent),#93bbfd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header .status{font-size:12px;display:flex;align-items:center;gap:4px;margin-left:auto}
+.header .status .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.header .status .dot.off{background:var(--red)}
+.auth-screen{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.auth-screen .box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:340px;max-width:92vw;display:flex;flex-direction:column;gap:14px}
+.auth-screen .box h2{font-size:16px;text-align:center}
+.auth-screen input{background:var(--input-bg,#22222f);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:14px;outline:none}
+.auth-screen input:focus{border-color:var(--accent)}
+.auth-screen button{background:var(--accent);color:#fff;border:none;padding:10px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.auth-screen button:hover{opacity:.85}
+.dashboard{display:none;flex:1;flex-direction:column;overflow:hidden}
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.toolbar .info{font-size:12px;color:var(--text2)}
+.toolbar .btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:all .15s}
+.toolbar .btn:hover{background:var(--surface3)}
+.toolbar .btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+.toolbar .badge{font-size:12px;background:var(--surface2);padding:3px 10px;border-radius:20px}
+.content{flex:1;display:flex;overflow:hidden}
+.panel{flex:1;display:flex;flex-direction:column;min-width:0}
+.panel-header{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;font-size:13px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.user-list{flex:1;overflow-y:auto;padding:8px}
+.user-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;transition:all .12s}
+.user-card:hover{border-color:var(--accent)}
+.user-card .info{flex:1;min-width:0}
+.user-card .info .name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.user-card .info .name .tag{font-size:10px;background:var(--surface2);color:var(--text2);padding:1px 8px;border-radius:10px}
+.user-card .info .detail{font-size:11px;color:var(--text2);margin-top:2px}
+.user-card .info .detail span{margin-right:10px}
+.user-card .actions{display:flex;gap:6px;flex-shrink:0}
+.user-card .actions button{padding:5px 12px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
+.user-card .actions .kick-btn{background:var(--red);color:#fff}
+.user-card .actions .kick-btn:hover{opacity:.8}
+.user-card .actions .ban-btn{background:var(--yellow);color:#1a1a2e}
+.user-card .actions .ban-btn:hover{opacity:.8}
+.user-card .avatar{width:32px;height:32px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--accent);flex-shrink:0}
+.monitor-panel{width:480px;border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.monitor-list{flex:1;overflow-y:auto;padding:8px}
+.monitor-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;font-size:12px}
+.monitor-item .mon-time{color:var(--text2);font-size:10px}
+.monitor-item .mon-room{color:var(--accent)}
+.monitor-item .mon-user{font-weight:600}
+.monitor-item .mon-id{font-size:10px;color:var(--text2);font-family:monospace}
+.monitor-item .mon-msg{color:var(--text);margin-top:3px;word-break:break-all}
+.monitor-item .mon-flag{display:inline-block;font-size:10px;background:var(--yellow);color:#1a1a2e;padding:0 6px;border-radius:4px;margin-left:4px}
+.monitor-item .del-btn{font-size:10px;background:var(--red);color:#fff;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;transition:opacity .12s}
+.monitor-item .del-btn:hover{opacity:.7}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 28px;border-radius:12px;font-size:14px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.15)}.toast.show{opacity:1}
+@media(max-width:768px){.monitor-panel{display:none}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>awishr 管理后台</h1>
+  <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">未连接</span></div>
+</div>
+
+<div class="auth-screen" id="authScreen">
+  <div class="box">
+    <h2>管理员登录</h2>
+    <input type="password" id="pwdInput" placeholder="输入管理员密码">
+    <button id="loginBtn">登录</button>
+  </div>
+</div>
+
+<div class="dashboard" id="dashboard">
+  <div class="toolbar">
+    <div class="badge" id="onlineBadge">0 人在线</div>
+    <span class="info" id="banCount">封禁 0 个</span>
+    <div style="flex:1"></div>
+    <button class="btn" id="refreshBtn">🔄 刷新</button>
+    <button class="btn danger" id="logoutBtn">退出</button>
+  </div>
+  <div class="content">
+    <div class="panel">
+      <div class="panel-header">在线用户 <span style="color:var(--text2);font-weight:400" id="userCount">(0)</span></div>
+      <div class="user-list" id="userList"></div>
+    </div>
+    <div class="monitor-panel">
+      <div class="panel-header">实时消息监控</div>
+      <div class="monitor-list" id="monitorList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+var ws,authed=false,mem=[];
+var pwdI=$('pwdInput'),loginBtn=$('loginBtn'),authS=$('authScreen'),dash=$('dashboard');
+var userL=$('userList'),monL=$('monitorList'),ob=$('onlineBadge'),bc=$('banCount'),uc=$('userCount');
+var sd=$('statusDot'),st=$('statusText');
+var toastEl=$('toast');
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(function(){toastEl.classList.remove('show')},2500)}
+
+function connect(){
+var host=location.host;
+var wsUrl='ws://'+host+'/ws';
+var hostname=location.hostname;
+if(hostname==='moe-anwish.pages.dev'||hostname.endsWith('.trycloudflare.com')){
+wsUrl='wss://'+host+'/ws'
+}
+ws=new WebSocket(wsUrl);
+ws.onopen=function(){sd.className='dot';st.textContent='已连接';identify()};
+ws.onmessage=function(e){handle(JSON.parse(e.data))};
+ws.onclose=function(){sd.className='dot off';st.textContent='已断开';authed=false;dash.style.display='none';authS.style.display='flex';setTimeout(connect,3000)};
+ws.onerror=function(){ws.close()};
+setInterval(function(){if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},30000)
+}
+
+function identify(){
+var cid='admin_'+Math.random().toString(36).substr(2,10);
+ws.send(JSON.stringify({type:'identify',client_id:cid}))
+}
+function login(){
+var p=pwdI.value.trim();if(!p)return;
+ws.send(JSON.stringify({type:'admin_auth',password:p}))
+}
+loginBtn.addEventListener('click',login);
+pwdI.addEventListener('keydown',function(e){if(e.key==='Enter')login()});
+$('refreshBtn').addEventListener('click',function(){if(authed)ws.send(JSON.stringify({type:'admin_list'}))});
+$('logoutBtn').addEventListener('click',function(){authed=false;dash.style.display='none';authS.style.display='flex';pwdI.value=''});
+
+function handle(d){
+try{
+switch(d.type){
+case 'welcome':
+if(authed)ws.send(JSON.stringify({type:'admin_list'}));
+break;
+case 'admin_auth_ok':
+authed=true;authS.style.display='none';dash.style.display='flex';
+ws.send(JSON.stringify({type:'admin_list'}));
+toast('登录成功');
+break;
+case 'admin_user_list':
+renderUsers(d.users||[]);
+break;
+case 'admin_kick_ok':
+toast('已踢出');ws.send(JSON.stringify({type:'admin_list'}));
+break;
+case 'kick_ok':
+case 'ban_ok':
+toast(d.message||'操作成功');ws.send(JSON.stringify({type:'admin_list'}));
+break;
+case 'delete_ok':
+toast('已删除');
+break;
+case 'chat':
+addMonitor(d);
+break;
+case 'system':
+break;
+case 'room_list':
+break;
+case 'pong':
+break;
+case 'error':
+toast(d.message);
+break;
+}
+}catch(e){console.error(e)}
+}
+
+function kick(uid,cid){
+if(!confirm('确定要踢出 '+(uid||cid)+' 并封禁？'))return;
+ws.send(JSON.stringify({type:'admin_kick',target_session_id:uid,target_client_id:cid}))
+}
+
+function renderUsers(users){
+userL.innerHTML='';
+uc.textContent='('+users.length+')';
+var totalOnline=0;
+users.forEach(function(u){
+totalOnline++;
+var card=document.createElement('div');card.className='user-card';
+var a=u.username&&u.username[0]||'?';
+card.innerHTML='<div class="avatar">'+a+'</div><div class="info"><div class="name">'+esc(u.username)+' <span class="tag">'+((u.room||'?').replace('room','聊天室 '))+'</span></div><div class="detail"><span>⛓ '+esc(u.client_id.slice(0,12))+'...</span><span>🆔 '+esc(u.session_id)+'</span></div></div><div class="actions"><button class="ban-btn" onclick="window._kick(\''+u.session_id+'\',\''+u.client_id+'\')">封禁</button></div>';
+userL.appendChild(card)
+});
+ob.textContent=totalOnline+' 人在线'
+}
+window._kick=kick;
+
+function addMonitor(d){
+var i=document.createElement('div');i.className='monitor-item';
+var t=d.timestamp?new Date(d.timestamp*1000).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit','timeZone':'Asia/Shanghai'}):'';
+var msg=d.content||'';
+var ts=d.timestamp||0;
+var room=d._room||'';
+var cid=(d.client_id||'').slice(0,12);
+var sid=(d.session_id||'').slice(0,12);
+var flag='';
+if(containsSensitive(msg))flag=' <span class="mon-flag">⚠ 敏感</span>';
+i.innerHTML='<div class="mon-time">'+t+' <span class="mon-room">'+esc(room.replace('room','R'))+'</span></div><div><span class="mon-user">'+esc(d.username||'')+'</span>'+flag+' <span class="mon-id">'+esc(cid)+'</span></div><div class="mon-msg">'+esc(msg)+'</div><div style="margin-top:4px"><button class="del-btn" onclick="window._delMsg(\''+room+'\','+ts+')">删除</button></div>';
+monL.insertBefore(i,monL.firstChild);
+mem.push(d);if(mem.length>200)mem.shift();
+if(monL.children.length>100)monL.removeChild(monL.lastChild)
+}
+
+function containsSensitive(t){
+var words=['法轮功','六四','天安门','台湾独立','藏独','疆独','分裂国家','颠覆国家','邪教'];
+for(var i=0;i<words.length;i++){if(t.indexOf(words[i])>=0)return true}
+return false
+}
+
+function delMsg(rid,ts){
+if(!rid||!ts)return;
+if(!confirm('确定要删除这条消息吗？'))return;
+ws.send(JSON.stringify({type:'admin_delete_message',room_id:rid,timestamp:ts}))
+}
+window._delMsg=delMsg;
+
+function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+if(location.host.indexOf(':')>0||location.host==='localhost:8767'||location.host==='127.0.0.1:8767'||location.hostname==='localhost'||location.hostname==='127.0.0.1'){
+connect()
+}else{
+toast('管理后台需要通过本地服务器打开');
+st.textContent='不可用'
+}
+})();
+</script>
+</body>
+</html>
