@@ -1,0 +1,16 @@
+[Unit]
+Description=milimiki Chatroom WebSocket Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/chatroom
+ExecStart=/usr/bin/python3 /opt/chatroom/app.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/milimiki-backend.log
+StandardError=append:/var/log/milimiki-backend.log
+
+[Install]
+WantedBy=multi-user.target
