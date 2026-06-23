@@ -650,8 +650,24 @@ async def health_handler(request):
     })
 
 
+@web.middleware
+async def security_headers_middleware(request, handler):
+    """Inject security headers from old CF Worker / Nginx config"""
+    response = await handler(request)
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss: ws:; font-src 'self'; media-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()'
+    return response
+
+
+
 def main():
     app = web.Application(client_max_size=65536)
+    app.middlewares.append(security_headers_middleware)
     app.router.add_get("/", index_handler)
     app.router.add_get("/admin", admin_handler)
     app.router.add_get("/health", health_handler)
