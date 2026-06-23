@@ -161,7 +161,7 @@ var as_=parseInt(localStorage.getItem('aw_as')||'0');
 
 var $=function(id){return document.getElementById(id)};
 // Keyboard: prevent page push on mobile
-if(window.visualViewport){var vv=window.visualViewport;function adjVH(){document.body.style.height=vv.height+'px';var m=$('messages');if(m)m.scrollTop=m.scrollHeight}vv.addEventListener('resize',adjVH);vv.addEventListener('scroll',adjVH)}
+if(window.visualViewport){var vv=window.visualViewport;function adjVH(){document.body.style.height=vv.height+'px';requestAnimationFrame(function(){var m=$('messages');if(m)m.scrollTop=m.scrollHeight})}vv.addEventListener('resize',adjVH);vv.addEventListener('scroll',adjVH)}mi.addEventListener("focus",function(){setTimeout(function(){var m=$("messages");if(m)m.scrollTop=m.scrollHeight},350)})
 
 var msgEl=$('messages'),rlEl=$('roomList'),mi=$('msgInput'),sb=$('sendBtn');
 var ud=$('usernameDisplay'),crn=$('currentRoomName'),cro=$('currentRoomOnline');
@@ -216,7 +216,7 @@ updateRooms();
 break;
 case 'chat':render(d);break;
 case 'system':render(d);break;
-case 'pong':if(d.rooms){renderRooms(d.rooms,d.online_total)}break;case 'room_list':
+case 'pong':if(d.rooms){rooms=d.rooms;updateRooms();ot.textContent=d.online_total||0}break;case 'room_list':
 rooms=d.rooms||[];updateRooms();ot.textContent=d.online_total||0;
 if(curRoom){var cr=rooms.find(function(x){return x.id===curRoom});if(cr&&cro)cro.textContent=cr.online+' 人在线'}
 break;
