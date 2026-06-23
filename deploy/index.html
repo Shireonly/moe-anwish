@@ -10,7 +10,7 @@
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <link rel="icon" href="/favicon.png" type="image/png">
-<link rel="preconnect" href="https://milimiki.com">
+
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 [data-theme="dark"]{--bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--surface3:#2a2a3a;--border:#333348;--text:#e4e4e7;--text2:#a1a1aa;--accent:#60a5fa;--accent-hover:#93bbfd;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--input-bg:#22222f}
@@ -83,12 +83,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans S
 .modal-close:hover{background:var(--surface3)}
 .sidebar-toggle{display:none;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:8px;font-size:18px;cursor:pointer;line-height:1}
 @media(max-width:640px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .2s ease}.sidebar.mobile-show{transform:translateX(0)}.sidebar-toggle{display:block}}
+.logo-img{height:32px;width:32px;border-radius:6px;vertical-align:middle;margin-right:8px;}
 </style>
 </head>
 <body>
 <div class="header">
   <button class="sidebar-toggle" id="sidebarToggle">☰</button>
-  <h1>milimiki</h1>
+  <h1><img src="logo.png" alt="" class="logo-img">简单随意的聊天室</h1>
   <div class="online-badge"><span class="online-dot"></span><span class="online-num" id="onlineTotal">0</span></div>
   <button class="settings-btn" id="settingsBtn">⚙</button>
 </div>
@@ -229,7 +230,7 @@ case 'error':toast(d.message);break;
 function showWelcome(){
 curRoom=null;
 var xtra=connected?'':'<div style="margin-top:12px;color:var(--text2);font-size:13px">未连接到服务器，聊天功能暂时不可用</div>';
-if(crn)crn.textContent='milimiki';if(cro)cro.textContent=connected?'':'未连接';
+if(crn)crn.textContent='简单随意的聊天室';if(cro)cro.textContent=connected?'':'未连接';
 msgEl.innerHTML='<div class="welcome-screen"><div class="room-buttons" id="welcomeRoomBtns"></div>'+xtra+'</div>';
 var btns=$('welcomeRoomBtns');
 if(!connected)btns.innerHTML='<span style="color:var(--text2);font-size:14px">连接后将显示房间列表</span>';
@@ -312,6 +313,7 @@ connect();
 </script>
 <style>
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 28px;border-radius:12px;font-size:14px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.15)}.toast.show{opacity:1}
+
 </style>
 </body>
 </html>

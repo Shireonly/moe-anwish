@@ -1,29 +1,16 @@
-# 敏感文件 - 包含 API Token / 密钥
-_deploy.py
-_deploy_fresh.py
-_deploy_v3.py
-_cf.py
-_upload.py
-_verify.py
-_create_arlwish.py
-_redeploy_arlwish.py
-_dl_gh.py
-_gh_auth.py
-_deploy_now.py
-_deploy_static.py
-_deploy_clean.py
-_check_status.py
-_build_logs.py
-_debug_deploy.py
-_promote.py
+# Sensitive / deploy scripts
+_*.py
+_*.bat
+_*.ps1
 
-# 临时 / 测试文件
+# Temp / test files
 .wrangler/
 __pycache__/
 *.pyc
 *.bak
 test_*.js
 test_*.txt
+test_*.py
 check_*.py
 extract_*.py
 fix_*.py
@@ -36,6 +23,10 @@ site_test.py
 
 # Cloudflare
 cloudflared.exe
+
+# Old server artifacts
+nginx-*.conf
+*.service
 
 # OS
 .DS_Store
