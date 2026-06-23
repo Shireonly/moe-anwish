@@ -559,7 +559,11 @@ async def websocket_handler(request):
                         await ws.send_json({"type": "error", "message": "你不是管理员"})
 
                 elif msg_type == "ping":
-                    await ws.send_json({"type": "pong"})
+                    await ws.send_json({
+                        "type": "pong",
+                        "rooms": room_manager.get_all_rooms(),
+                        "online_total": room_manager.get_online_count(),
+                    })
 
             elif msg.type == WSMsgType.ERROR:
                 print(f"WS Error: {ws.exception()}")

@@ -12,6 +12,7 @@
 <link rel="icon" href="/favicon.png" type="image/png">
 
 <style>
+html,body{margin:0;padding:0;height:100dvh;overflow:hidden;-webkit-overflow-scrolling:none}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 [data-theme="dark"]{--bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--surface3:#2a2a3a;--border:#333348;--text:#e4e4e7;--text2:#a1a1aa;--accent:#60a5fa;--accent-hover:#93bbfd;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--input-bg:#22222f}
 [data-theme="light"]{--bg:#f0f0f3;--surface:#fff;--surface2:#eaeaf0;--surface3:#dddde6;--border:#d8d8e0;--text:#1a1a2e;--text2:#666680;--accent:#3b82f6;--accent-hover:#2563eb;--green:#16a34a;--red:#dc2626;--yellow:#ca8a04;--input-bg:#fff}
@@ -39,7 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans S
 .welcome-screen .room-buttons{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;background:var(--surface);padding:30px 40px;border-radius:16px;border:1px solid var(--border)}
 .welcome-screen .room-buttons button{padding:18px 40px;border-radius:14px;border:2px solid var(--accent);background:var(--surface);color:var(--text);font-size:17px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.06)}
 .welcome-screen .room-buttons button:hover{background:var(--accent);color:#fff;transform:translateY(-3px);box-shadow:0 4px 14px rgba(124,58,237,.3)}
-.messages{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 18px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+.messages{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 18px;display:flex;flex-direction:column;gap:6px;background:var(--bg);-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
 .message-row{display:flex;align-items:flex-start;gap:8px;max-width:85%;animation:msgIn .18s ease}
 @keyframes msgIn{from{opacity:0}to{opacity:1}}
 .avatar{width:36px;height:36px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border:1.5px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -50,7 +51,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans S
 .msg-time{font-size:10px;color:var(--text2);opacity:.6}
 .msg-bubble{display:inline;padding:2px 6px;border-radius:6px;font-size:14px;line-height:1.6;word-break:break-word;color:#333}
 .message.system{align-self:center;max-width:100%;font-size:12px;color:var(--text2);background:transparent;opacity:.65;padding:3px 10px;border-radius:10px}
-.input-area{padding:10px 16px 12px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:8px;flex-shrink:0;align-items:flex-end}
+.input-area{padding:10px 16px 12px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:8px;flex-shrink:0;align-items:flex-end;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 .input-area .username-display{font-size:12px;color:var(--accent);font-weight:600;white-space:nowrap;padding:8px 6px;border-radius:8px;cursor:pointer;flex-shrink:0;transition:background .15s}
 .input-area .username-display:hover{background:var(--surface2)}
 .input-area input[type="text"]{flex:1;background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:12px;font-size:14px;outline:none;transition:border-color .15s;min-width:0}
@@ -191,7 +192,7 @@ ws.onopen=function(){connected=true;mi.disabled=false;sb.disabled=false;mi.focus
 ws.onmessage=function(e){handle(JSON.parse(e.data))};
 ws.onclose=function(){connected=false;mi.disabled=true;sb.disabled=true;cs.style.display='none';showWelcome();if(ping)clearInterval(ping);setTimeout(connect,5000)};
 ws.onerror=function(){ws.close()};
-ping=setInterval(function(){if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},30000)
+ping=setInterval(function(){if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},5000)
 }
 
 function handle(d){
@@ -212,7 +213,7 @@ updateRooms();
 break;
 case 'chat':render(d);break;
 case 'system':render(d);break;
-case 'room_list':
+case 'pong':if(d.rooms){renderRooms(d.rooms,d.online_total)}break;case 'room_list':
 rooms=d.rooms||[];updateRooms();ot.textContent=d.online_total||0;
 if(curRoom){var cr=rooms.find(function(x){return x.id===curRoom});if(cr&&cro)cro.textContent=cr.online+' 人在线'}
 break;
@@ -315,6 +316,7 @@ connect();
 })();
 </script>
 <style>
+html,body{margin:0;padding:0;height:100dvh;overflow:hidden;-webkit-overflow-scrolling:none}
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 28px;border-radius:12px;font-size:14px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.15)}.toast.show{opacity:1}
 
 .sidebar-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:49;cursor:pointer}.sidebar-overlay.active{display:block}
