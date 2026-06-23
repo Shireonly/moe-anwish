@@ -161,9 +161,9 @@ var as_=parseInt(localStorage.getItem('aw_as')||'0');
 
 var $=function(id){return document.getElementById(id)};
 // Keyboard: prevent page push on mobile
-if(window.visualViewport){var vv=window.visualViewport;function adjVH(){document.body.style.height=vv.height+'px';requestAnimationFrame(function(){var m=$('messages');if(m)m.scrollTop=m.scrollHeight})}vv.addEventListener('resize',adjVH);vv.addEventListener('scroll',adjVH)}mi.addEventListener("focus",function(){setTimeout(function(){var m=$("messages");if(m)m.scrollTop=m.scrollHeight},350)})
+if(window.visualViewport){var vv=window.visualViewport;function adjVH(){document.body.style.height=vv.height+'px';requestAnimationFrame(function(){var m=$('messages');if(m)m.scrollTop=m.scrollHeight})}vv.addEventListener('resize',adjVH);vv.addEventListener('scroll',adjVH)}
 
-var msgEl=$('messages'),rlEl=$('roomList'),mi=$('msgInput'),sb=$('sendBtn');
+var msgEl=$('messages'),rlEl=$('roomList'),mi=$('msgInput'),sb=$('sendBtn');mi.addEventListener('focus',function(){setTimeout(function(){var m=$('messages');if(m)m.scrollTop=m.scrollHeight},350)});
 var ud=$('usernameDisplay'),crn=$('currentRoomName'),cro=$('currentRoomOnline');
 var ot=$('onlineTotal'),cs=$('connectScreen'),sbt=$('sidebarToggle'),sbEl=$('sidebar');
 var setBtn=$('settingsBtn'),setModal=$('settingsModal'),setNameI=$('settingsNameInput'),setNameB=$('settingsNameBtn'),setClose=$('settingsCloseBtn');
